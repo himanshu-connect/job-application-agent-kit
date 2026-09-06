@@ -18,6 +18,37 @@ in full — they are the authoritative, possibly-updated source of truth and
 override anything below if they conflict. If the Project is not attached,
 read the equivalent files from the connected device folder instead.
 
+DEVICE AVAILABILITY GATE — do this before anything else, including Step 0.
+This whole run depends on [device] (the tracker files live there, and
+platform search needs your own logged-in browser session). Confirm it's
+actually reachable this firing: call a lightweight remote-devices tool
+(e.g. get_device_info) once.
+- If it succeeds (device connected): proceed to Step 0 below as normal —
+  the rest of this prompt is unaffected.
+- If it fails / no device is connected, check whether the text
+  "[RETRY ATTEMPT" appears anywhere above this line in what you were
+  given:
+  - If it does NOT appear: this is the regular firing and the device
+    isn't reachable. Send [Your Name] one short message saying the weekly
+    run couldn't reach [device] at the scheduled time, so it's retrying
+    once at [retry time, e.g. 4 hours later] today. Then call the
+    create_trigger tool to schedule a one-time run: run_once_at =
+    [retry time, converted to UTC], requires_local_device: true, name
+    "[this task's name] — retry", and prompt = this entire prompt
+    verbatim with a single new first line inserted: "[RETRY ATTEMPT — if
+    the device is still unreachable now, skip this week's run entirely
+    and do not schedule any further retry]". Then end this session
+    immediately — do not run Step 0 or anything below it this firing.
+  - If it DOES appear: this is that retry firing and the device is still
+    unreachable. Send [Your Name] one short message saying this week's
+    run is being skipped because the device wasn't reachable at either
+    attempt, and that the normal schedule resumes next week. Then end
+    this session immediately — do not schedule another retry, and do not
+    run Step 0 or anything below it.
+(This gate is optional but recommended once you've seen the plain version
+work — it avoids a run silently failing partway through because the
+device happened to be offline at the scheduled time.)
+
 GUARDRAILS (non-negotiable):
 - Never submit any job application, never create accounts anywhere, never
   click Apply/Submit on any form, on any platform, at any step of this run
@@ -39,54 +70,68 @@ regardless. If a reply with company names arrives before this run's digest
 after, handle it as a normal ad hoc "add this company" request whenever it
 arrives.
 
-STEP 1 — Discovery.
-(a) Career-page watch pipeline (search-workflow.md), LIGHT depth only —
-one combined search query per step, not an exhaustive multi-query sweep,
-to keep this sustainable within search-quota limits over time. Use the
-Agent tool to spawn one subagent per track ([Track 1], [Track 2],
-[Track 3], [Track 4]) to parallelize the sub-steps below:
-   1. Sweep tracker.xlsx (Opportunities) and companies-to-explore.xlsx for
+STEP 1 — Discovery. Use the Agent tool to spawn subagents in parallel —
+one per track ([Track 1], [Track 2], [Track 3], [Track 4]) plus one
+Platform Search subagent — rather than researching sequentially yourself.
+
+(a) The track subagents run the career-page watch pipeline
+(search-workflow.md), LIGHT depth only — one combined search query per
+step, not an exhaustive multi-query sweep, to keep this sustainable within
+search-quota limits over time. Each track subagent:
+   1. Sweeps tracker.xlsx (Opportunities) and companies-to-explore.xlsx for
       rows added or edited since the last run that aren't fully processed
-      yet (plus anything from Step 0).
-   2. Discover new companies not yet in companies-to-explore.xlsx that
-      could plausibly be hiring for these tracks.
-   3. Search newly-added companies for current open roles matching the
-      tracks, at the seniority floor defined in search-workflow.md.
-   4. One light general search for new matching postings across the
-      tracks, independent of any specific company.
-   5. Re-check a sample (not all, to stay light) of companies already in
-      companies-to-explore.xlsx for whether previously-noted open roles
-      are still live or have closed.
+      yet (plus anything from Step 0) and that belong to its track.
+   2. Discovers new companies not yet in companies-to-explore.xlsx that
+      could plausibly be hiring for its track.
+   3. Searches newly-added companies for current open roles matching its
+      track, at the seniority floor defined in search-workflow.md.
+   4. Runs one light general search for new matching postings in its
+      track, independent of any specific company.
+   5. Re-checks a sample (not all, to stay light) of companies already in
+      companies-to-explore.xlsx for whether previously-noted open roles in
+      its track are still live or have closed.
    Seniority floor, track-priority rules, and any noisy-source caveats are
    documented in search-workflow.md — follow them.
-(b) Do NOT run logged-in platform search ([Your platforms, e.g. LinkedIn,
-Indeed, etc.] via Claude in Chrome) automatically in this run — it depends
-on an already-logged-in browser session this unattended firing can't
-assume is available. Offer it explicitly in the digest (Step 3) instead,
-and only run it if/when [Your Name] replies asking for it.
 
-STEP 2 — Tracker update. Merge genuinely new findings from Step 1(a) into
-tracker.xlsx (new Opportunities rows, Decision=New) and
+(b) The Platform Search subagent runs alongside the track subagents every
+week: using Claude in Chrome against [Your Name]'s own already-logged-in
+browser session, read-only, it searches [Your platforms, e.g. LinkedIn,
+Indeed, etc.] for postings matching the tracks at the seniority floor
+defined in search-workflow.md, and extracts candidate listings — search
+and extract only, never click Apply, never log in on [Your Name]'s
+behalf. If Chrome isn't reachable, or no session is logged in, this
+subagent should fail gracefully and report that in its results — don't
+block the other subagents or the rest of the run on it; just note in the
+Step 3 digest that platform search couldn't run this week and why. (If you
+haven't yet confirmed your browser session stays reliably logged in for
+unattended runs, start by leaving this subagent out and running platform
+search yourself on demand instead — fold it into Step 1 once you trust it.)
+
+STEP 2 — Tracker update. Merge genuinely new findings from all Step 1
+subagents into tracker.xlsx (new Opportunities rows, Decision=New) and
 companies-to-explore.xlsx (new rows, or updated Status/notes), matching
-the exact existing column headers, dropdown values, and formatting. Use
-openpyxl, run recalc.py after edits (zero formula errors required), and
-commit back through the device bridge with an mtime guard so you never
-clobber a concurrent edit. Do not alter existing Pursuing-sheet rows other
-than reading them for the follow-up check below. If the device isn't
-linked, or write-back fails, don't block on it: save everything found into
-a new project doc via the Projects tool instead, note the staged count in
-the digest, and merge it in on a future run once the device is reachable.
+the exact existing column headers, dropdown values, and formatting. Tag
+each new row's Source appropriately (career-page watch vs. the specific
+platform Platform Search found it on). Use openpyxl, run recalc.py after
+edits (zero formula errors required), and commit back through the device
+bridge with an mtime guard so you never clobber a concurrent edit. Do not
+alter existing Pursuing-sheet rows other than reading them for the
+follow-up check below. If the device isn't linked, or write-back fails,
+don't block on it: save everything found into a new project doc via the
+Projects tool instead, note the staged count in the digest, and merge it
+in on a future run once the device is reachable.
 
 STEP 3 — Digest & approval gate. Also read the Pursuing sheet and flag any
 row where Next Follow-up is today or earlier with no status change since.
 Then send [Your Name] one concise digest message covering: new companies
-discovered, new matching roles found (company / role / link), previously-
-open roles now closed, any pending-merge count, and Pursuing rows due for
-follow-up. End the digest by (i) offering to run the logged-in platform
-search now if [Your Name] is at their desk, and (ii) asking them to reply
-naming which, if any, of the new opportunities to pursue. Wait for the
-reply — this is the approval gate. Nothing in Step 4 happens without an
-explicit reply naming specific opportunities.
+discovered, new matching roles found (company / role / link / how it was
+found — career-page watch or platform search), previously-open roles now
+closed, whether platform search ran this week (and why not, if it
+didn't), any pending-merge count, and Pursuing rows due for follow-up. End
+the digest by asking them to reply naming which, if any, of the new
+opportunities to pursue. Wait for the reply — this is the approval gate.
+Nothing in Step 4 happens without an explicit reply naming specific
+opportunities.
 
 STEP 4 — Draft on approval (never apply). When the reply names one or more
 opportunities to pursue: flip that row's Decision to Pursuing in
@@ -100,6 +145,4 @@ location — never compensation, notice period, relocation willingness,
 voluntary personal disclosures, or open-ended narrative fields). Always
 stop at a saved, reviewable, unsubmitted package or pre-filled-but-
 unsubmitted form, and say clearly it's ready for review and manual
-submission. If the reply instead (or also) asks for the logged-in platform
-search, run it now (read-only, extract-only), log any new matches the same
-way as Step 2, and summarize what was found.
+submission.
