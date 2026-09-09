@@ -66,8 +66,12 @@ A working list of platforms to consider for your Sources list and the `search-wo
 | Foundit | India / APAC / MEA | General-purpose job and talent-management platform (formerly Monster India/APAC/Middle East, rebranded 2022). |
 | Talent500 | India / GCC recruiting | Recruiter-matching platform connecting vetted tech talent (mostly India-based) with Global Capability Centers and global employers — not a self-serve board; you're matched rather than applying directly in most cases. |
 | Jobright.ai | AI-native | Newer AI-driven job-matching platform with an "autopilot" application assistant; the most-discussed AI-native entrant as of 2026 — evaluate carefully, since "auto-apply" features can conflict with the review-before-submit principle this system is built around. |
+| Michael Page / Randstad / ManpowerGroup | Recruitment Agency / Global | International staffing and executive-search firms with a strong India presence; work mid-to-senior placements across finance, tech, sales, and leadership roles. |
+| ABC Consultants / TeamLease / CIEL HR | Recruitment Agency / India | India-founded staffing and executive-search firms — ABC Consultants (leadership hiring, since 1969) and TeamLease and CIEL HR (staffing, RPO, and talent-advisory work) are among the longest-established. |
 
 > **A note on "AI-native" auto-apply tools:** they're worth naming here specifically because they can work against this system's core principle — several market themselves on submitting applications automatically on your behalf. If you use one for discovery, keep its auto-apply features switched off and route anything worth pursuing back through your own tailoring-and-review step instead.
+
+> **A note on recruitment agencies:** these work differently from the platforms above. You typically register or submit your resume once, and a recruiter matches you to roles behind the scenes, rather than you finding and applying to a specific posting yourself. This system's usual workflow — log a posting, tailor a resume to its JD, track it — doesn't map cleanly onto that; treat an agency placement more like a company you're exploring than a tracked job posting, and log outcomes in `companies-to-explore.xlsx` or as manual notes rather than forcing it into the Opportunities sheet.
 
 ## A closing reminder
 
